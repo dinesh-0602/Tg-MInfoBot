@@ -42,7 +42,7 @@ async def slowpics_collection(message, file_name, path):
         "public": "false",
     }
 
-    for i in range(0, len(img_list)):
+    for i in range(len(img_list)):
         data[f"images[{i}].name"] = img_list[i]
         data[f"images[{i}].file"] = (
             img_list[i],
@@ -166,8 +166,10 @@ async def gdrive_screenshot(message, frame_count, url):
     Generates Screenshots From Google Drive links.
     """
     
-    replymsg = await message.reply_text(f"Checking your given Gdrive Link...", quote=True)
-    
+    replymsg = await message.reply_text(
+        "Checking your given Gdrive Link...", quote=True
+    )
+
     try:
         GD = GoogleDriveHelper()
         metadata = GD.get_metadata(url)
@@ -195,7 +197,8 @@ async def gdrive_screenshot(message, frame_count, url):
     except MessageNotModified: pass
     except Exception as error:
         await replymsg.edit(
-            f"Something went wrong with the given Gdrive link. Make sure the links is public and not rate limited.")
+            "Something went wrong with the given Gdrive link. Make sure the links is public and not rate limited."
+        )
 
 
 
@@ -204,13 +207,15 @@ async def ddl_screenshot(message, frame_count, url):
     Generates Screenshots from Direct Download links.
     """
     
-    replymsg = await message.reply_text(f"Checking direct download url....**", quote=True)
+    replymsg = await message.reply_text(
+        "Checking direct download url....**", quote=True
+    )
 
     try:
                 
         file_url = f"'{url}'"
-        file_name = re.search(".+/(.+)", url).group(1)
-        
+        file_name = re.search(".+/(.+)", url)[1]
+
         total_duration = subprocess.check_output(f"ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 {file_url}", shell=True).decode("utf-8")
         total_duration = float(total_duration.strip())
 
@@ -223,11 +228,14 @@ async def ddl_screenshot(message, frame_count, url):
             headers,
             file_name,
             frame_count,
-            file_duration=float(total_duration))
+            file_duration=total_duration,
+        )
 
     except MessageNotModified: pass
     except Exception as error:
-        return await replymsg.edit(f"Something went wrong with the given url. Make sure that url is downloadable video file wich is non ip specific and should return proper response code without any required headers")
+        return await replymsg.edit(
+            "Something went wrong with the given url. Make sure that url is downloadable video file wich is non ip specific and should return proper response code without any required headers"
+        )
 
 
 
@@ -252,12 +260,13 @@ async def telegram_screenshot(client, message, frame_count):
     mime = media.mime_type
     size = media.file_size
 
-    if message.media.value == "document":
-        if "video" not in mime:
-            return await message.reply_text("can only generate screenshots from video file....", quote=True)
+    if message.media.value == "document" and "video" not in mime:
+        return await message.reply_text("can only generate screenshots from video file....", quote=True)
 
     # Dowloading partial file.
-    replymsg = await message.reply_text(f"Downloading partial video file....", quote=True)
+    replymsg = await message.reply_text(
+        "Downloading partial video file....", quote=True
+    )
 
     if int(size) <= 200000000:
         await message.download(os.path.join(os.getcwd(), file_name))
@@ -271,7 +280,7 @@ async def telegram_screenshot(client, message, frame_count):
 
         downloaded_percentage = 25
 
-    await replymsg.edit(f"Partial file downloaded....")
+    await replymsg.edit("Partial file downloaded....")
     # Partial file downloaded
 
     mediainfo_json = json.loads(subprocess.check_output(["mediainfo", file_name, "--Output=JSON"]).decode("utf-8"))
@@ -291,41 +300,41 @@ async def telegram_screenshot(client, message, frame_count):
         
         
         
-mediainfo_usage = f"Generates video frame screenshot from GoogleDrive links, Telegram files or direct download links."
+mediainfo_usage = "Generates video frame screenshot from GoogleDrive links, Telegram files or direct download links."
 commands = ["screenshot", "ss"]
 
 @Client.on_message(filters.command(commands, **prefixes))
 async def screenshot(client, message: Message):
 
-    replied_message = message.reply_to_message  
+    replied_message = message.reply_to_message
     if replied_message:
-    	try:
-    		user_input = message.text.split(None, 1)[1]  
-    		frame_count = int(user_input.strip())
-    	except:
-    		frame_count = 5
-    		
-    	if frame_count > 15: frame_count = 15
-    	return await telegram_screenshot(client, message, frame_count)     	
-    	
+        try:
+        	user_input = message.text.split(None, 1)[1]  
+        	frame_count = int(user_input.strip())
+        except:
+        	frame_count = 5
+
+        frame_count = min(frame_count, 15)
+        return await telegram_screenshot(client, message, frame_count)     	
+
     if len(message.command) < 2:
     	return await message.reply_text(mediainfo_usage, quote=True)
-    	
-    user_input = message.text.split(None, 1)[1]  
+
+    user_input = message.text.split(None, 1)[1]
     if "|" in user_input:
 
         frame_count =user_input.split("|")[-1].strip()
         url = user_input.split("|")[0].strip()
-        
+
         try: frame_count = int(frame_count)
         except: frame_count = 5
-        if frame_count > 15: frame_count = 15
+        frame_count = min(frame_count, 15)
 
     else:
         frame_count = 5
         url = user_input.split("|")[0].strip()
-            
-            
+
+
     for (key, value) in SUPPORTED_URL_REGEX.items():
         if bool(re.search(Rf"{key}", url)):
 
